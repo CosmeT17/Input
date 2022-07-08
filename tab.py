@@ -244,18 +244,12 @@ def start_of_line():
             
 # Nicely formats the input stream on the input line after the user hits enter
 def print_input():
-    # if len(var["i_stream"]) > 1:
-    #     start_of_line()
-    #     prt("".join(var["i_stream"][0]) + "...")
+    if len(var["i_stream"]) > 1:
+        prt(LEFT * var["pos"])
+        var["pos"] = 0
+        prt("".join(var["i_stream"][0]) + "...")
     print()
 # ---------------------------------------------------------------------------------------------------------
-
-
-
-
-
-
-
 
 # Testing Functions ---------------------------------------------------------------------------------------
 # Prints useful information and the input stream
