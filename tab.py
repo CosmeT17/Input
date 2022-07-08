@@ -212,7 +212,36 @@ def move_right():
     # # Wring the bell if the input stream is empty
     except IndexError:
         prt(BELL)
-        
+
+#  Places the cursor at the start of the line (CTRL+A)
+def start_of_line():
+    # Wring the bell if cursor already at the start
+    if var["pos"]  == 0:
+        prt(BELL)
+
+    # First char in the line is not a tab, go to the start
+    elif var["i_stream"][var["line_num"]][0] != TAB_SPACE:
+        prt(LEFT * var["pos"])
+        var["pos"] = 0
+
+    # First char is part of a tab
+    else:
+        # Count how many tab spaces there are before the cursor and the remainder
+        num_tab_spaces = 1
+        for char in var["i_stream"][var["line_num"]][1:var["pos"]]: 
+            if char == TAB_SPACE: num_tab_spaces += 1
+            else: break
+        tab_spaces_remainder = num_tab_spaces % var["tab_len"]
+                
+        move_distance = var["pos"] - tab_spaces_remainder
+        # Go to the beginning/end of the tab
+        if move_distance != 0:
+            prt(LEFT * move_distance)
+            var["pos"] = tab_spaces_remainder
+            
+        # Cannot move left, wring bell
+        else: prt(BELL)
+            
 # Nicely formats the input stream on the input line after the user hits enter
 def print_input():
     # if len(var["i_stream"]) > 1:
@@ -268,6 +297,7 @@ key_func = {
     ENTER: lambda: print_input(),
     LEFT: lambda: move_left(),
     RIGHT: lambda: move_right(),
+    START_OF_LINE: lambda: start_of_line(),
 }
 
 # Main Function -------------------------------------------------------------------------------------------
