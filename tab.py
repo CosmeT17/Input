@@ -1,5 +1,6 @@
 # Input: Final Version
 from readchar import readkey
+from math import ceil
 
 # Keys ----------------------------------------------------------------------------------------
 ENTER = '\x0d' # (CTRL+M) '/r'
@@ -136,8 +137,9 @@ def print_char(keypress, wrapping):
 
 # Moves the cursor to the left, changes to the previous line when needed (LEFT ARROW)
 def move_left():
-    # Move the cursor to the left
+    # Not at the beginning of the line
     if var["pos"] != 0:
+        # Move the cursor to the left
         if var["i_stream"][var["line_num"]][var["pos"] - 1] != TAB_SPACE:
             prt(LEFT)
             var["pos"] -= 1
@@ -149,11 +151,10 @@ def move_left():
 
         # Need to go to previous lines
         else:
-            tab_spaces_remainder = (var["tab_len"] - var["pos"]) % var["max_len"]
-            lines_to_skip = (var["tab_len"] - var["pos"]) // var["max_len"]
-            
+            tab_spaces_left_over = (var["tab_len"] - var["pos"])
+            lines_to_skip = ceil(tab_spaces_left_over / var["max_len"])
+            tab_spaces_remainder = tab_spaces_left_over % var["max_len"]
             if tab_spaces_remainder == 0: tab_spaces_remainder = var["max_len"]
-            else: lines_to_skip += 1
                 
             prt(LEFT * var["pos"])
             var["pos"] = 0
@@ -168,7 +169,50 @@ def move_left():
     # Wring the bell if the cursor is at the left-most position
     else:
         prt(BELL)
-            
+
+# Moves the cursor to the right, changes to the next line when needed (RIGHT ARROW)
+def move_right():
+    try:
+        # Not at the end of the line
+        if var["pos"] != len(var["i_stream"][var["line_num"]]):
+            # Move the cursor to the right
+            if var["i_stream"][var["line_num"]][var["pos"]] != TAB_SPACE:
+                prt(RIGHT)
+                var["pos"] += 1
+    
+            # Skip to the end of the tab
+            elif var["max_len"] - var["pos"] >= var["tab_len"]:
+                prt(RIGHT * var["tab_len"])
+                var["pos"] += var["tab_len"]
+
+             # Need to go to previous lines
+            else:
+                tab_spaces_in_line = var["max_len"] - var["pos"]
+                tab_spaces_left_over = var["tab_len"] - tab_spaces_in_line
+                lines_to_skip = ceil(tab_spaces_left_over / var["max_len"])
+                tab_spaces_remainder = tab_spaces_left_over % var["max_len"]
+                if tab_spaces_remainder == 0: tab_spaces_remainder = var["max_len"]
+                
+                var["line_num"] += lines_to_skip
+                prt(RIGHT * tab_spaces_in_line)
+                var["pos"] += tab_spaces_in_line
+                print_line_left(len(var["i_stream"][var["line_num"]]) - 1)
+                prt(RIGHT * tab_spaces_remainder)
+                var["pos"] = tab_spaces_remainder
+        
+        # Move to the next line
+        elif var["line_num"] != len(var["i_stream"]) - 1:
+            var["line_num"] += 1
+            print_line_left(len(var["i_stream"][var["line_num"]]) - 1)
+            var["pos"] = 0
+                
+        # Wring the bell if the cursor is at the right-most position
+        else: prt(BELL)
+
+    # # Wring the bell if the input stream is empty
+    except IndexError:
+        prt(BELL)
+        
 # Nicely formats the input stream on the input line after the user hits enter
 def print_input():
     # if len(var["i_stream"]) > 1:
@@ -223,6 +267,7 @@ def test_print(prompt):
 key_func = {
     ENTER: lambda: print_input(),
     LEFT: lambda: move_left(),
+    RIGHT: lambda: move_right(),
 }
 
 # Main Function -------------------------------------------------------------------------------------------
@@ -259,6 +304,6 @@ def sensitive_input(prompt = "", max_length = 0, wrapping = True, testing = Fals
 # ---------------------------------------------------------------------------------------------------------
     
 # TEST ----------------------------------------------------------------------------------------------------
-test = sensitive_input("Prompt: ",  2, wrapping = True, testing = True)
+test = sensitive_input("Prompt: ",  10, wrapping = True, testing = True)
 print([test])
 # ---------------------------------------------------------------------------------------------------------
