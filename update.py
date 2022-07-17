@@ -5,6 +5,7 @@ DELETE = "\x1b\x5b\x33\x7e"
 BACKSPACE = '\x7f'
 EXIT = "\x1b\x1b"
 ENTER = '\x0d', '='
+double_enter = [False]
 
 def format_num(num): 
     if num[-2:] == '.0': return num[:-2]
@@ -36,10 +37,9 @@ def print_calculator():
     prt(CALCULATOR)
     move_cursor(-3, 11)
 
-def print_num(num, del_amount = 0):
-    if del_amount < 0: del_amount = 0
-    move_cursor(-(len(num) + del_amount), 0)
-    prt(' ' * del_amount + num)
+def print_num(num):
+    move_cursor(-SCREEN_LENGTH, 0)
+    prt(' ' * (SCREEN_LENGTH - len(num)) + num)
 
 def print_history(num = '', operator = ''):
     history = num + ' ' + operator
@@ -53,14 +53,23 @@ def update_operator(operator, num_len):
     prt(operator)
     move_cursor(move_distance - 1, -1)
 
-def exit_program(del_amount):
+def exit_program():
     print_history('', '')
-    print_num("GOOD BYE", del_amount)
+    print_num("GOOD BYE")
     move_cursor(2, -11)
     print()
 
-def get_num(num = '0', del_amount = 0):
-    print_num(num, del_amount)
+# def test():
+#     move_cursor(2, -11)
+#     prt(f"\n[{num_1}]")
+#     prt(f"[{operator_1}]")
+#     prt(f"[{num_2}]")
+#     prt(f"[{operator_2}]\n")
+#     move_cursor(20, 13)
+#     readkey()
+
+def get_num(num = '0'):
+    print_num(num)
 
     is_integer = True
     if num == '0.': is_integer = False # Decimal transition mid operation
@@ -77,9 +86,8 @@ def get_num(num = '0', del_amount = 0):
         elif input in operations:
             # Removing trailing zeroes in num if it is a decimal number
             if not is_integer:
-                prev_len = len(num)
                 num = num.rstrip('0').rstrip('.')
-                print_num(num, prev_len - len(num))
+                print_num(num)
             return (num, input)
 
         # Input is a point - decimal numbers
@@ -98,7 +106,7 @@ def get_num(num = '0', del_amount = 0):
                 if num[-1] == '.': 
                     is_integer = True
                 num = num[:-1]
-                print_num(num, 1)
+                print_num(num)
 
         # Input is the deletion key - delete the entire number
         elif input == DELETE:
@@ -108,9 +116,8 @@ def get_num(num = '0', del_amount = 0):
                 return('', '')
             
             is_integer = True
-            prev_len = len(num)
             num = '0'
-            print_num(num, prev_len - 1)
+            print_num(num)
         
         # Input is exit - stop the program: operator = "EXIT"
         elif input == EXIT: return(num, "EXIT")
@@ -118,50 +125,36 @@ def get_num(num = '0', del_amount = 0):
         # Input is the enter/equals key - 
         elif input in ENTER: return(num, "=")
         
-def get_num_2(num_1, operator_1, num_2, print):
-    if num_1 == '': return('', '', '')
+def get_num_2(num_1, operator_1, num_2, operator_2, print):
+    if num_1 == '': return('', '', '', '')
     if print: print_history(num_1, operator_1)
     
     input = readkey()
     while not input.isnumeric():
-        # Input is an operator - update operator_1 if it changed
+        # Input is an operator
         if input in operations:
             operator_1 = input
+            num_2 = ''
 
             # Reset print_history after doing a run with "=" for operator_2
-            if not print: 
-                print_history(num_1,'')
-                print = True
+            if not print: print_history(num_1,'')
             update_operator(operator_1, len(num_1))
 
         # Input is enter
         elif input in ENTER:
-            if num_2 == '': num_2 = num_1
-
-            # prt(f"[{num_1}]")
-            # prt(f"[{operator_1}]")
-            # prt(f"[{num_2}]")
-            # readkey()
+            if operator_1 != '=' or operator_2 != '':
+                double_enter[0] = True
                 
-            print_history(f"{num_1} {operator_1} {num_2}", '=')
-            num_1 = print_num(result, len(num_2) - len(result))
-            calculator(num_1, operator_1, num_2, False)
+                if operator_1 in operations and operator_2 in operations: (num_2, operator_2) = (num_1, '')            
+                if operator_2 == '=': (operator_1, operator_2) = (operator_2, operator_1)
+                elif operator_2 == '': (operator_1, operator_2) = ('=', operator_1)
+                if num_2 == '': num_2 = num_1
 
-            
-            # if operator_1 != '=':
-
-                # prt(f"[{num_1}]")
-                # prt(f"[{operator_1}]")
-                # prt(f"[{num_2}]")
-                # readkey()
-
-                # # Enter is pressed with only num_1 and operator_1
-                # if num_2 == '':
-                #     return (num_1, operator_1, operator_1) # operator_1 ?
-
-            
-        #     prt(f"[{num_1}]")
-        #     readkey()
+                result = operations[operator_2](num_1, num_2)
+                print_num(result)
+                print_history(f"{num_1} {operator_2} {num_2}", '=')
+                
+                return(num_2, operator_1, operator_2, result)
         
         # Input is a decimal point - float activated mid operations
         elif input == '.':
@@ -175,70 +168,62 @@ def get_num_2(num_1, operator_1, num_2, print):
 
         # Input is delete - clear the input completely
         elif input == DELETE:
-            print_num('0', len(num_1) - 1)
+            print_num('0')
             print_history('', '')
-            return('', '', '')
+            return('', '', '', '')
 
         # Input is exit - stop the program: operator_1 = "EXIT"
-        elif input == EXIT: return('',"EXIT",'')
+        elif input == EXIT: return('',"EXIT",'', '')
 
         input = readkey()
-    # Deleting print_history after a new number is entered if the previous operator was enter
-    if not print: 
+    # Deleting print_history after a new number is entered after hitting enter
+    if operator_1 == '=' or double_enter[0]:
         print_history('', '')
-        operator_1 = ''
-    # if operator_1 == '=': print_history('', '')
-
-    # Getting the second number
-    (num_2, next_operator) = get_num(input, len(num_1) - 1)
-    return (num_2, operator_1, next_operator)
+        (num_1, operator_1) = ('', '')
+        double_enter[0] = False
         
-def calculator(num_1 = '', operator_1 = '', num_2 = '', print = True):
+    # Getting the second number
+    (num_2, next_operator) = get_num(input)
+    return (num_2, operator_1, next_operator, num_1)
+        
+def calculator(num_1 = '', operator_1 = '', num_2 = '', operator_2 = '', print = True):
     # Getting num_1 if it is empty 
     if num_1 == '': (num_1, operator_1) = get_num()
     
-    # The exit key was pressed while getting num_1: return to main
+    # The exit key was pressed while getting the numbers: return to main
     if operator_1 == "EXIT":
-        exit_program(len(num_1) - 8)
+        exit_program()
         return
 
-    # Getting num_2 if it is empty
-    # if num_2 == '':
-    (num_2, operator_1, operator_2) = get_num_2(num_1, operator_1, num_2, print)
-    if not print: print = True # Setting print back to true after changing it
-    # else: operator_2 = ''
-        
-    # The exit key was pressed while getting num_2: return to main
+    # Getting num_2
+    (num_2, operator_1, operator_2, num_1) = get_num_2(num_1, operator_1, num_2, operator_2, print)
+    if not print: print = True # Setting print back to true after changing it     
+    # The exit key was pressed while getting the operators: return to main
     if operator_1 == "EXIT":
-        exit_program(len(num_1) - 8)
+        exit_program()
         return
 
     # Calculating the result if num_2 is not empty
     if num_2 != '':
-        # if operator_1 == '=': 
-        #     result = num_2
-        # else:
-        if operator_1 != '' and operator_1 != '=':
+        if operator_1 == '': (result, num_2) = (num_2, '')
+            
+        elif operator_1 == '=':
+            result = num_1
+            print = False
+        else:
             result = operations[operator_1](num_1, num_2)
-            print_num(result, len(num_2) - len(result))
+            print_num(result)
 
             # Printing the whole equation if operator_2 is the equal sign
             if operator_2 == '=':
                 print_history(f"{num_1} {operator_1} {num_2}", '=')
                 print = False
-        # Calculation resetted after full calculation
-        else: result = num_2
-            
-        # Resetting num_2 so it can be recorded next function call
-        # num_2 = ''
-                
+        
     # If num_2 is empty, then result must be empty
     else: result = ''
-    
-    if operator_2 == '=' and operator_1 != '': operator_2 = operator_1
-    # Recursion
-        
-    calculator(result, operator_2, num_2, print)
+
+    # Recursion - the result is not num_1
+    calculator(result, operator_2, num_2, operator_1, print)
     
     
 # MAIN ----------------------------------------------------------------------------------
@@ -246,23 +231,22 @@ print_calculator()
 calculator()
 
 # TO DO NOW:
-#    Double enter - no sign change
-#    Double enter - sign change
-#    Delete remembers input
+#    Update backspace, decimal, deletion
 #    Negation
-#    No space in history
 #    Number limits
 #    Show history
-#    Graphical numbers
+#    Testing
 
 # Finished:
 #    * input number
-#    * backspace
+#    * enter 
 #    * exit 
+#    * backspace
 #    * decimals
 #    * deletion
 
 # number limits:
+#    * full equation: make screen bigger
 #    * large numbers
 #    * small numbers
 #    * irrational/ repeating decinmals
