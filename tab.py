@@ -241,6 +241,24 @@ def start_of_line():
             
         # Cannot move left, wring bell
         else: prt(BELL)
+
+
+
+#  Places the cursor at the end of the line (CTRL+E)
+def end_of_line(): return
+    # if len(var["i_stream"]) != 0:
+    #     # Wring the bell if cursor already at the end
+    #     if var["pos"] == len(var["i_stream"][var["line_num"]]):
+    #         prt(BELL)
+    #     else:
+    #         prt(RIGHT * (len(var["i_stream"][var["line_num"]]) - var["pos"]))
+    #         var["pos"] = len(var["i_stream"][var["line_num"]])
+    # # Wring the bell if the input stream is empty
+    # else: prt(BELL)
+
+
+
+
             
 # Nicely formats the input stream on the input line after the user hits enter
 def print_input():
@@ -292,6 +310,7 @@ key_func = {
     LEFT: lambda: move_left(),
     RIGHT: lambda: move_right(),
     START_OF_LINE: lambda: start_of_line(),
+    END_OF_LINE: lambda: end_of_line(),
 }
 
 # Main Function -------------------------------------------------------------------------------------------
